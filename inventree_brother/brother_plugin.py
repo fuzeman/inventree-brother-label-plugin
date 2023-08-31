@@ -49,7 +49,7 @@ def get_rotation_choices():
 
 class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
 
-    AUTHOR = "Oliver Walters"
+    AUTHOR = "Dean Gardiner"
     DESCRIPTION = "Label printing plugin for Brother printers"
     VERSION = BROTHER_PLUGIN_VERSION
 

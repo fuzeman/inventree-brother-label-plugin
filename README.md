@@ -2,7 +2,7 @@
 ![PEP](https://github.com/inventree/inventree-python/actions/workflows/pep.yaml/badge.svg)
 
 
-# inventree-brother-plugin
+# inventree-brother-label-plugin
 
 A label printing plugin for [InvenTree](https://inventree.org), which provides support for the [Brother label printers](https://www.brother.com.au/en/products/all-labellers/labellers).
 
@@ -13,13 +13,13 @@ This plugin supports printing to *some* Brother label printers with network (wir
 Install this plugin manually as follows:
 
 ```
-pip install inventree-brother-plugin
+pip install inventree-brother-label-plugin
 ```
 
 Or, add to your `plugins.txt` file to install automatically using the `invoke install` command:
 
 ```
-inventree-brother-plugin
+inventree-brother-label-plugin
 ```
  
 ### Debian / Ubuntu requirements

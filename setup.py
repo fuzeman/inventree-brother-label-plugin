@@ -9,13 +9,13 @@ with open('README.md', encoding='utf-8') as f:
 
 
 setuptools.setup(
-    name="inventree-brother-plugin",
+    name="inventree-brother-label-plugin",
 
     version=BROTHER_PLUGIN_VERSION,
 
-    author="Oliver Walters",
+    author="Dean Gardiner",
 
-    author_email="oliver.henry.walters@gmail.com",
+    author_email="me@dgardiner.net",
 
     description="Brother label printer plugin for InvenTree",
 
@@ -25,7 +25,7 @@ setuptools.setup(
 
     keywords="inventree label printer printing inventory",
 
-    url="https://github.com/inventree/inventree-brother-plugin",
+    url="https://github.com/fuzeman/inventree-brother-label-plugin",
 
     license="MIT",
 
