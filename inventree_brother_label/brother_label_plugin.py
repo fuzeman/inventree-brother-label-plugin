@@ -15,8 +15,7 @@ from inventree_brother_label.version import BROTHER_LABEL_PLUGIN_VERSION
 from plugin import InvenTreePlugin
 from plugin.mixins import LabelPrintingMixin, SettingsMixin
 
-# Image library
-from PIL import ImageOps
+# PDF library
 import poppler
 
 brother = BrotherLabel()
@@ -40,7 +39,7 @@ def get_label_choices():
     for device in brother.devices.values():
         for label in device.labels:
             for identifier in label.identifiers:
-              ids.add(identifier)
+                ids.add(identifier)
 
     return list(ids)
 
