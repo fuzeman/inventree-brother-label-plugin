@@ -32,7 +32,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=[
-        'brother-label',
+        'brother-label>=2.0a4',
         'pypdf',
     ],
 
