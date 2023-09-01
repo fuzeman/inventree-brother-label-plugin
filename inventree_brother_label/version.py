@@ -1,3 +1,3 @@
 """Version information for the plugin"""
 
-BROTHER_LABEL_PLUGIN_VERSION = "0.7.2"
+BROTHER_LABEL_PLUGIN_VERSION = "2.0a1"
