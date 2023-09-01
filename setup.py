@@ -2,7 +2,7 @@
 
 import setuptools
 
-from inventree_brother.version import BROTHER_PLUGIN_VERSION
+from inventree_brother_label.version import BROTHER_LABEL_PLUGIN_VERSION
 
 with open('README.md', encoding='utf-8') as f:
     long_description = f.read()
@@ -11,7 +11,7 @@ with open('README.md', encoding='utf-8') as f:
 setuptools.setup(
     name="inventree-brother-label-plugin",
 
-    version=BROTHER_PLUGIN_VERSION,
+    version=BROTHER_LABEL_PLUGIN_VERSION,
 
     author="Dean Gardiner",
 
@@ -32,7 +32,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=[
-        'brother-ql-inventree',
+        'brother-label',
+        'python-poppler',
     ],
 
     setup_requires=[
@@ -44,7 +45,7 @@ setuptools.setup(
 
     entry_points={
         "inventree_plugins": [
-            "BrotherLabeLPlugin = inventree_brother.brother_plugin:BrotherLabelPlugin"
+            "BrotherLabelPlugin = inventree_brother_label.brother_label_plugin:BrotherLabelPlugin"
         ]
     },
 )

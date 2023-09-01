@@ -6,7 +6,7 @@
 
 A label printing plugin for [InvenTree](https://inventree.org), which provides support for the [Brother label printers](https://www.brother.com.au/en/products/all-labellers/labellers).
 
-This plugin supports printing to *some* Brother label printers with network (wired or WiFi) support. Refer to the [brother_ql docs](https://github.com/pklaus/brother_ql/blob/master/brother_ql/models.py) for a list of label printers which are directly supported.
+This plugin supports printing to *some* Brother label printers with network (wired or WiFi) support. Refer to the [brother_label docs](https://github.com/pklaus/brother_label/blob/master/brother_label/models.py) for a list of label printers which are directly supported.
 
 ## Installation
 
