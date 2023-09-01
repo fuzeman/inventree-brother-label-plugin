@@ -17,6 +17,7 @@ from plugin.mixins import LabelPrintingMixin, SettingsMixin
 
 # PDF library
 from pypdf import PdfReader
+import pdf2image
 
 brother = BrotherLabel()
 
@@ -35,7 +36,7 @@ def get_label_choices():
     """
 
     ids = set([('automatic', 'Automatic')])
-    
+
     for device in brother.devices.values():
         for label in device.labels:
             for identifier in label.identifiers:
@@ -127,7 +128,10 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
 
         # Retrieve PNG
         if kwargs.get('pdf_data', None):
-            im = self.render_to_png(label=None, pdf_data=kwargs['pdf_data'])
+            im = pdf2image.convert_from_bytes(
+                kwargs['pdf_data'],
+                dpi=300,
+            )[0]
         else:
             im = kwargs['png_file']
 
