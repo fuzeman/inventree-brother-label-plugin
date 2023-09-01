@@ -33,7 +33,7 @@ setuptools.setup(
 
     install_requires=[
         'brother-label',
-        'python-poppler',
+        'pypdf',
     ],
 
     setup_requires=[

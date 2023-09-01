@@ -16,7 +16,7 @@ from plugin import InvenTreePlugin
 from plugin.mixins import LabelPrintingMixin, SettingsMixin
 
 # PDF library
-import poppler
+from pypdf import PdfReader
 
 brother = BrotherLabel()
 
@@ -136,9 +136,8 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             if not kwargs.get('pdf_data', None):
                 raise Exception('PDF required for automatic label type selection')
             
-            document = poppler.load_from_data(kwargs['pdf_data'])
-            page = document.pages[0]
-            rect = page.page_rect()
+            pdf = PdfReader(kwargs['pdf_data'])
+            rect = pdf.pages[0].cropbox
             
             label_type = None
 
