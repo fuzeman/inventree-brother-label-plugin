@@ -39,7 +39,7 @@ def get_label_choices():
     for device in brother.devices.values():
         for label in device.labels:
             for identifier in label.identifiers:
-                ids.add(identifier)
+                ids.add((identifier, label.name))
 
     return list(ids)
 
