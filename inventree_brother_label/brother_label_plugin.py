@@ -34,8 +34,8 @@ def get_label_choices():
     Return a list of available label types
     """
 
-    ids = set(('automatic', 'Automatic'))
-
+    ids = set([('automatic', 'Automatic')])
+    
     for device in brother.devices.values():
         for label in device.labels:
             for identifier in label.identifiers:
