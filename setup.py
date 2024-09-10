@@ -33,7 +33,6 @@ setuptools.setup(
 
     install_requires=[
         'brother-label>=2.0a6',
-        'pypdf',
     ],
 
     setup_requires=[

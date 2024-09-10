@@ -7,7 +7,10 @@ Supports direct printing of labels to networked label printers, using the brothe
 from brother_label import BrotherLabel
 
 # translation
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+
+# printing options
+from rest_framework import serializers
 
 from inventree_brother_label.version import BROTHER_LABEL_PLUGIN_VERSION
 
@@ -15,14 +18,12 @@ from inventree_brother_label.version import BROTHER_LABEL_PLUGIN_VERSION
 from plugin import InvenTreePlugin
 from plugin.mixins import LabelPrintingMixin, SettingsMixin
 
-# PDF library
-from pypdf import PdfReader
-import pdf2image
+# Image library
+from PIL import ImageOps
 
 brother = BrotherLabel()
 
-
-def get_device_choices():
+def get_model_choices():
     """
     Returns a list of available printer models
     """
@@ -53,6 +54,19 @@ def get_rotation_choices():
     return [(f"{degree}", f"{degree}°") for degree in [0, 90, 180, 270]]
 
 
+class BrotherLabelSerializer(serializers.Serializer):
+    """Custom serializer class for BrotherLabelPlugin.
+
+    Used to specify printing parameters at runtime
+    """
+
+    copies = serializers.IntegerField(
+        default=1,
+        label=_('Copies'),
+        help_text=_('Number of copies to print'),
+    )
+
+
 class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
 
     AUTHOR = "Dean Gardiner"
@@ -63,14 +77,16 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
     SLUG = "brother_label"
     TITLE = "Brother Label Printer"
 
+    PrintingOptionsSerializer = BrotherLabelSerializer
+
     # Use background printing
     BLOCKING_PRINT = False
 
     SETTINGS = {
-        'DEVICE': {
-            'name': _('Device'),
-            'description': _('Select device'),
-            'choices': get_device_choices,
+        'MODEL': {
+            'name': _('Model'),
+            'description': _('Select model of Brother printer'),
+            'choices': get_model_choices,
             'default': 'PT-P750W',
         },
         'TYPE': {
@@ -84,6 +100,11 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             'description': _('IP address of the brother label printer'),
             'default': '',
         },
+        'USB_DEVICE': {
+            'name': _('USB Device'),
+            'description': _('USB device identifier of the label printer (VID:PID/SERIAL)'),
+            'default': '',
+        },
         'AUTO_CUT': {
             'name': _('Auto Cut'),
             'description': _('Cut each label after printing'),
@@ -95,6 +116,12 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             'description': _('Rotation of the image on the label'),
             'choices': get_rotation_choices,
             'default': '0',
+        },
+        'COMPRESSION': {
+            'name': _('Compression'),
+            'description': _('Enable image compression option (required for some printer models)'),
+            'validator': bool,
+            'default': False,
         },
         'HQ': {
             'name': _('High Quality'),
@@ -120,20 +147,27 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         # ^ currently this width and height are those of the label template (before conversion to PDF
         # and PNG) and are of little use
 
-        device = self.get_setting('DEVICE')
-        ip_address = self.get_setting("IP_ADDRESS")
+        # Printing options requires a modern-ish InvenTree backend,
+        # which supports the 'printing_options' keyword argument
+        options = kwargs.get('printing_options', {})
+        n_copies = int(options.get('copies', 1))
+
+        # Look for png data in kwargs (if provided)
+        label_image = kwargs.get('png_file', None)
+
+        if not label_image:
+            # Convert PDF to PNG
+            pdf_data = kwargs['pdf_data']
+            label_image = self.render_to_png(label=None, pdf_data=pdf_data)
+
+        # Read settings
+        model = self.get_setting('MODEL')
+        ip_address = self.get_setting('IP_ADDRESS')
+        usb_device = self.get_setting('USB_DEVICE')
         label_type = self.get_setting('TYPE')
         cut = self.get_setting('AUTO_CUT')
+        compress = self.get_setting('COMPRESSION')
         hq = self.get_setting('HQ')
-
-        # Retrieve PNG
-        if kwargs.get('pdf_data', None):
-            im = pdf2image.convert_from_bytes(
-                kwargs['pdf_data'],
-                dpi=300,
-            )[0]
-        else:
-            im = kwargs['png_file']
 
         # Automatic label selection
         if label_type == 'automatic':
@@ -157,15 +191,31 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         rotation = int(self.get_setting('ROTATION')) + 90
         rotation = rotation % 360
 
+        # Select appropriate identifier and backend
+        target = ''
+        backend = ''
+
+        # check IP address first, then USB
+        if ip_address:
+            target = f'tcp://{ip_address}'
+            backend = 'network'
+        elif usb_device:
+            target = f'usb://{usb_device}'
+            backend = 'pyusb'
+        else:
+            # Raise error when no backend is defined
+            raise ValueError("No IP address or USB device defined.")
+
         # Print label
         brother.print(
             label_type,
-            [im],
+            [label_image],
             cut=cut,
             device=device,
+            compress=compress,
             hq=hq,
             rotate=rotation,
-            target=f'tcp://{ip_address}',
-            backend='network',
+            target=target,
+            backend=backend,
             blocking=True
         )
