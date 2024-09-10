@@ -19,10 +19,8 @@ from plugin import InvenTreePlugin
 from plugin.mixins import LabelPrintingMixin, SettingsMixin
 from report.models import LabelOutput, LabelTemplate
 
-# Image library
-from PIL import ImageOps
-
 brother = BrotherLabel()
+
 
 def get_model_choices():
     """
@@ -165,9 +163,9 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         output.complete = False
         output.save()
 
-        N = len(items)
+        n_items = len(items)
 
-        if N <= 0:
+        if n_items <= 0:
             raise ValidationError(_('No items provided to print'))
 
         # TODO: Add padding around the provided image, otherwise the label does not print correctly
