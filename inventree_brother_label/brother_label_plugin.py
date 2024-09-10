@@ -211,7 +211,7 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             label_type,
             [label_image],
             cut=cut,
-            device=device,
+            device=model,
             compress=compress,
             hq=hq,
             rotate=rotation,
