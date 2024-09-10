@@ -6,7 +6,7 @@ Supports direct printing of labels to networked label printers, using the brothe
 # Required brother_label libs
 from brother_label import BrotherLabel
 
-# translation
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 # printing options
