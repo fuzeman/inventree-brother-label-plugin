@@ -32,7 +32,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
 
     install_requires=[
-        'brother-label>=2.0a6',
+        'brother-label>=2.0a7',
     ],
 
     setup_requires=[

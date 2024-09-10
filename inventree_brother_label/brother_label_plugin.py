@@ -66,6 +66,30 @@ class BrotherLabelSerializer(serializers.Serializer):
         help_text=_('Number of copies to print'),
     )
 
+    autocut = serializers.BooleanField(
+        default=True,
+        label=_('Auto Cut'),
+        help_text=_('Automatically cut labels')
+    )
+
+    autocut_every = serializers.IntegerField(
+        default=1,
+        label=_('Auto Cut Every'),
+        help_text=_('Cut every n-th label')
+    )
+
+    autocut_end = serializers.BooleanField(
+        default=True,
+        label=_('Auto Cut End'),
+        help_text=_('Feed and cut after last label is printed')
+    )
+
+    halfcut = serializers.BooleanField(
+        default=True,
+        label=_('Half Cut'),
+        help_text=_('Half-cut labels')
+    )
+
 
 class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
 
@@ -104,12 +128,6 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             'name': _('USB Device'),
             'description': _('USB device identifier of the label printer (VID:PID/SERIAL)'),
             'default': '',
-        },
-        'AUTO_CUT': {
-            'name': _('Auto Cut'),
-            'description': _('Cut each label after printing'),
-            'validator': bool,
-            'default': True,
         },
         'ROTATION': {
             'name': _('Rotation'),
@@ -150,7 +168,11 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         # Printing options requires a modern-ish InvenTree backend,
         # which supports the 'printing_options' keyword argument
         options = kwargs.get('printing_options', {})
-        n_copies = int(options.get('copies', 1))
+        copies = int(options.get('copies', 1))
+        autocut = options.get('autocut', True)
+        autocut_every = int(options.get('autocut_every', 1))
+        autocut_end = options.get('autocut_end', True)
+        halfcut = options.get('halfcut', True)
 
         # Look for png data in kwargs (if provided)
         label_image = kwargs.get('png_file', None)
@@ -165,7 +187,6 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         ip_address = self.get_setting('IP_ADDRESS')
         usb_device = self.get_setting('USB_DEVICE')
         label_type = self.get_setting('TYPE')
-        cut = self.get_setting('AUTO_CUT')
         compress = self.get_setting('COMPRESSION')
         hq = self.get_setting('HQ')
 
@@ -209,8 +230,11 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         # Print label
         brother.print(
             label_type,
-            [label_image],
-            cut=cut,
+            [label_image for x in range(copies)],
+            autocut=autocut,
+            autocut_every=autocut_every,
+            autocut_end=autocut_end,
+            halfcut=halfcut,
             device=model,
             compress=compress,
             hq=hq,
