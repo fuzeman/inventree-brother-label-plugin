@@ -17,6 +17,7 @@ from inventree_brother_label.version import BROTHER_LABEL_PLUGIN_VERSION
 # InvenTree plugin libs
 from plugin import InvenTreePlugin
 from plugin.mixins import LabelPrintingMixin, SettingsMixin
+from report.models import LabelOutput, LabelTemplate
 
 # Image library
 from PIL import ImageOps
@@ -31,12 +32,12 @@ def get_model_choices():
     return [(id, device.name) for (id, device) in brother.devices.items()]
 
 
-def get_label_choices():
+def get_media_choices():
     """
     Return a list of available label types
     """
 
-    ids = set([('automatic', 'Automatic')])
+    ids = set([])
 
     for device in brother.devices.values():
         for label in device.labels:
@@ -59,6 +60,20 @@ class BrotherLabelSerializer(serializers.Serializer):
 
     Used to specify printing parameters at runtime
     """
+
+    media = serializers.ChoiceField(
+        label=_('Media'),
+        help_text=_('Select label media type'),
+        choices=get_media_choices(),
+        default='12',
+    )
+
+    rotation = serializers.ChoiceField(
+        label=_('Rotation'),
+        help_text=_('Rotation of the image on the label'),
+        choices=get_rotation_choices(),
+        default='0',
+    )
 
     copies = serializers.IntegerField(
         default=1,
@@ -113,12 +128,6 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             'choices': get_model_choices,
             'default': 'PT-P750W',
         },
-        'TYPE': {
-            'name': _('Type'),
-            'description': _('Select label media type'),
-            'choices': get_label_choices,
-            'default': '12',
-        },
         'IP_ADDRESS': {
             'name': _('IP Address'),
             'description': _('IP address of the brother label printer'),
@@ -128,12 +137,6 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             'name': _('USB Device'),
             'description': _('USB device identifier of the label printer (VID:PID/SERIAL)'),
             'default': '',
-        },
-        'ROTATION': {
-            'name': _('Rotation'),
-            'description': _('Rotation of the image on the label'),
-            'choices': get_rotation_choices,
-            'default': '0',
         },
         'COMPRESSION': {
             'name': _('Compression'),
@@ -149,10 +152,23 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         },
     }
 
-    def print_label(self, **kwargs):
+    def print_labels(
+        self, label: LabelTemplate, output: LabelOutput, items: list, request, **kwargs
+    ):
+        """Handle printing of the provided labels.
+
+        Note that we override the entire print_labels method for this plugin.
         """
-        Send the label to the printer
-        """
+
+        # Initial state for the output print job
+        output.progress = 0
+        output.complete = False
+        output.save()
+
+        N = len(items)
+
+        if N <= 0:
+            raise ValidationError(_('No items provided to print'))
 
         # TODO: Add padding around the provided image, otherwise the label does not print correctly
         # ^ Why? The wording in the underlying brother_label library ('dots_printable') seems to suggest
@@ -168,48 +184,23 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
         # Printing options requires a modern-ish InvenTree backend,
         # which supports the 'printing_options' keyword argument
         options = kwargs.get('printing_options', {})
+
+        media = options.get('media', '12')
         copies = int(options.get('copies', 1))
         autocut = options.get('autocut', True)
         autocut_every = int(options.get('autocut_every', 1))
         autocut_end = options.get('autocut_end', True)
         halfcut = options.get('halfcut', True)
 
-        # Look for png data in kwargs (if provided)
-        label_image = kwargs.get('png_file', None)
-
-        if not label_image:
-            # Convert PDF to PNG
-            pdf_data = kwargs['pdf_data']
-            label_image = self.render_to_png(label=None, pdf_data=pdf_data)
-
         # Read settings
         model = self.get_setting('MODEL')
         ip_address = self.get_setting('IP_ADDRESS')
         usb_device = self.get_setting('USB_DEVICE')
-        label_type = self.get_setting('TYPE')
         compress = self.get_setting('COMPRESSION')
         hq = self.get_setting('HQ')
 
-        # Automatic label selection
-        if label_type == 'automatic':
-            if not kwargs.get('pdf_data', None):
-                raise Exception('PDF required for automatic label type selection')
-            
-            pdf = PdfReader(kwargs['pdf_data'])
-            rect = pdf.pages[0].cropbox
-            
-            label_type = None
-
-            for label in brother.devices[device].labels:
-                if label.tape_size[1] == rect.height:
-                    label_type = label.identifiers[0]
-                    break
-            
-            if not label_type:
-                raise Exception('Unable to find matching label type')
-
         # Calculate rotation
-        rotation = int(self.get_setting('ROTATION')) + 90
+        rotation = int(options.get('rotation', 0)) + 90
         rotation = rotation % 360
 
         # Select appropriate identifier and backend
@@ -227,10 +218,21 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             # Raise error when no backend is defined
             raise ValueError("No IP address or USB device defined.")
 
+        # Render labels
+        labels = []
+
+        for item in items:
+            pdf_file = self.render_to_pdf(label, item, request, **kwargs)
+            pdf_data = pdf_file.get_document().write_pdf()
+
+            labels.append(self.render_to_png(
+                label, item, request, pdf_data=pdf_data, **kwargs
+            ))
+
         # Print label
         brother.print(
-            label_type,
-            [label_image for x in range(copies)],
+            media,
+            [label for label in labels for x in range(copies)],
             autocut=autocut,
             autocut_every=autocut_every,
             autocut_end=autocut_end,
@@ -243,3 +245,10 @@ class BrotherLabelPlugin(LabelPrintingMixin, SettingsMixin, InvenTreePlugin):
             backend=backend,
             blocking=True
         )
+
+        # Mark the output as complete
+        output.complete = True
+        output.progress = 100
+        output.output = None
+
+        output.save()
