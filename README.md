@@ -66,3 +66,8 @@ Set image compression (required for some printers).
 
 * **High Quality**
 Print in high quality (required for some printers).
+
+* **Dithering**
+Enables grayscale-dithering for nicer logos and watermarks  
+(Default = disabled, to avoid surprising users relying on existing behavior) 
+       
